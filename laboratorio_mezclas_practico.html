@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laboratorio virtual: mezclas y disoluciones</title>
+<style>
+:root{--bg:#f4f8f8;--card:#fff;--ink:#1c2b2e;--mut:#5d7478;--pri:#1b6b73;--acc:#e07b22;--ok:#2e9e5b;--line:#cfdcde;--water:#7cc4e8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10191b;--card:#1a2a2d;--ink:#e8f1f2;--mut:#9bb3b6;--pri:#4fc3cc;--acc:#f0a050;--line:#2f4549;--water:#3b86a8}}
+:root[data-theme="dark"]{--bg:#10191b;--card:#1a2a2d;--ink:#e8f1f2;--mut:#9bb3b6;--pri:#4fc3cc;--acc:#f0a050;--line:#2f4549;--water:#3b86a8}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+#app{max-width:900px;margin:0 auto;padding:12px}
+h1{font-size:24px;margin:4px 0;color:var(--pri)} h3{margin:0 0 6px;color:var(--pri);font-size:16px}
+.row{display:flex;flex-wrap:wrap;gap:12px}.col{flex:1 1 300px;min-width:0}
+.card{background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px;margin-bottom:12px}
+button{font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:10px;padding:7px 10px;margin:3px 3px 3px 0;cursor:pointer}
+button:hover{border-color:var(--pri)} .tool{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:700}
+.add{font-size:14px} .ing{margin-bottom:6px}.ing b{display:block}
+.read{font-size:15px}.read b{color:var(--pri)} .tag{display:inline-block;background:var(--acc);color:#fff;border-radius:8px;padding:2px 9px;font-weight:700}
+.msg{background:rgba(27,107,115,.12);border-radius:12px;padding:10px;min-height:44px}
+.m{padding:7px 4px;border-bottom:1px dashed var(--line)} .m.d{color:var(--ok);font-weight:700}
+.shake{animation:sh .6s} @keyframes sh{0%,100%{transform:rotate(0)}20%{transform:rotate(-5deg)}40%{transform:rotate(5deg)}60%{transform:rotate(-4deg)}80%{transform:rotate(4deg)}}
+.jars span{display:inline-block;margin:2px 8px 2px 0;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app">
+<h1>🧪 Laboratorio virtual: mezclas y disoluciones</h1>
+<div class="row">
+ <div class="col">
+  <div class="card"><svg id="sv" viewBox="0 0 220 280" width="100%" style="max-height:340px"></svg>
+   <div class="read" id="rd"></div></div>
+  <div class="card"><h3>🫙 Frascos recogidos</h3><div class="jars" id="jr"></div></div>
+ </div>
+ <div class="col">
+  <div class="card"><h3>1 · Echa ingredientes al vaso (máx. 1 000 mL)</h3><div id="ing"></div></div>
+  <div class="card"><h3>2 · Usa las herramientas</h3>
+   <button class="tool" data-a="agitar">🥄 Agitar</button><button class="tool" data-a="filtrar">🧻 Filtrar</button><button class="tool" data-a="iman">🧲 Imán</button><button class="tool" data-a="decantar">🧴 Decantar</button><button class="tool" data-a="evaporar">🔥 Evaporar</button><button data-a="vaciar">🗑️ Vaciar vaso</button></div>
+  <div class="card"><h3>👀 Observa</h3><div class="msg" id="ms">Echa agua y sal en el vaso y agita. ¿Qué pasa?</div></div>
+ </div>
+</div>
+<div class="card"><h3>🎯 Misiones <span id="cnt"></span></h3><div id="mi"></div></div>
+</div>
+<script>
+const NG={w:'agua',o:'aceite',sal:'sal',az:'azúcar',ar:'arena',fe:'limaduras de hierro'};
+const ING=[['w','💧 Agua','mL',[50,100,250]],['sal','🧂 Sal','g',[1,5,10,50]],['az','🍬 Azúcar','g',[5,10,60]],['ar','🏖️ Arena','g',[20]],['o','🛢️ Aceite','mL',[100]],['fe','🧲 Limaduras de hierro','g',[10]]];
+const SOL=0.36; /* g de sal por mL de agua (~36 g/100 mL a 20 °C) */
+let S,J,ev,done=Array(7).fill(false);
+const $=i=>document.getElementById(i), f1=x=>Math.round(x*10)/10;
+function reset(){S={w:0,o:0,sal:0,az:0,ar:0,fe:0,st:false}}
+function dis(){const sd=S.st?Math.min(S.sal,SOL*S.w):0,ad=S.st&&S.w>0?S.az:0;return{sd,ad,su:S.sal-sd,au:S.az-ad}}
+function conc(){const d=dis();return S.w>0?(d.sd+d.ad)/S.w*1000:0}
+function het(){const d=dis();return S.ar+S.fe>0||d.su>0.001||d.au>0.001||(S.o>0&&S.w>0)}
+function kind(){
+ const c=Object.keys(NG).filter(k=>S[k]>0);
+ if(!c.length)return'Vaso vacío';
+ if(c.length==1)return'Sustancia pura: solo hay '+NG[c[0]];
+ if(het())return'Mezcla heterogénea';
+ return'Disolución (mezcla homogénea)<br>Soluto: '+[S.sal>0?'sal':'',S.az>0?'azúcar':''].filter(Boolean).join(' y ')+' · Disolvente: agua'}
+const MI=[
+ ['Suero de vestuario: prepara una disolución de <b>20 g/L de sal</b> (mínimo 250 mL) y agita.',()=>{const d=dis();return S.st&&S.w>=250&&S.sal>0&&!S.az&&!het()&&Math.abs(conc()-20)<=0.5}],
+ ['Isotónica casera: prepara una disolución de <b>60 g/L de azúcar</b> (mínimo 500 mL) y agita.',()=>S.st&&S.w>=500&&S.az>0&&!S.sal&&!het()&&Math.abs(S.az/S.w*1000-60)<=1],
+ ['Disolución saturada: con 100 mL de agua o más, echa <b>tanta sal</b> que ya no se disuelva (queda sal en el fondo) y agita.',()=>S.st&&S.w>=100&&S.sal>SOL*S.w+0.001&&!S.az&&!S.ar&&!S.fe&&!S.o],
+ ['Arena de la playa: mezcla arena con agua y sepárala con la <b>filtración</b>.',()=>ev.filt],
+ ['Aceite y agua no se llevan bien: sepáralos por <b>decantación</b>.',()=>ev.dec],
+ ['Tesoro escondido: mezcla limaduras de hierro con arena y sepáralas con el <b>imán</b>.',()=>ev.im],
+ ['Salinas: disuelve sal en agua, agita y recupera la sal por <b>evaporación</b>.',()=>ev.ev]];
+function msg(t){$('ms').innerHTML=t}
+function check(){MI.forEach((m,i)=>{if(!done[i]&&m[1]()){done[i]=true;msg('🎉 <b>¡Misión '+(i+1)+' cumplida!</b>')}});draw()}
+const A={
+ add(k,n){const vol=S.w+S.o+(k=='w'||k=='o'?n:0);if(vol>1000)return msg('⚠️ El vaso solo admite 1 000 mL.');
+  S[k]=f1(S[k]+n);S.st=false;check();
+  if(!done.some(x=>x)||true){const t=k=='o'&&S.w>0?'El aceite flota sobre el agua: no se mezclan.':k=='ar'?'La arena se hunde: no se disuelve.':k=='fe'?'Las limaduras caen al fondo.':'Añadido: '+n+' '+(k=='w'||k=='o'?'mL':'g')+' de '+NG[k]+'. Pulsa «Agitar».';if(!/cumplida/.test($('ms').innerHTML))msg(t)}},
+ agitar(){S.st=true;const d=dis();let t='Has agitado. ';
+  if(d.sd+d.ad>0)t+='Se disuelven '+f1(d.sd+d.ad)+' g (concentración: <b>'+f1(conc())+' g/L</b>). ';
+  if(d.su>0.001)t+='Quedan <b>'+f1(d.su)+' g de sal sin disolver</b>: la disolución está <b>saturada</b>. ';
+  if(S.ar+S.fe>0||(S.o>0&&S.w>0))t+='Lo que no se disuelve sigue separado. ';
+  if(!S.w&&(S.sal+S.az>0))t+='Sin líquido no hay disolución.';
+  $('sv').classList.remove('shake');void $('sv').offsetWidth;$('sv').classList.add('shake');check();if(!/cumplida/.test($('ms').innerHTML))msg(t)},
+ filtrar(){if(!S.w)return msg('Necesitas un líquido para filtrar.');
+  const d=dis(),had=S.ar>0;J.ar+=S.ar;J.fe+=S.fe;J.sal+=d.su;J.az+=d.au;S.ar=0;S.fe=0;S.sal-=d.su;S.az-=d.au;if(had)ev.filt=true;
+  check();if(!/cumplida/.test($('ms').innerHTML))msg('El filtro retiene los sólidos que <b>no</b> están disueltos. Lo disuelto pasa con el agua.')},
+ iman(){if(!S.fe)return msg('No hay nada que el imán pueda atraer.');
+  if(S.ar>0)ev.im=true;J.fe+=S.fe;S.fe=0;check();if(!/cumplida/.test($('ms').innerHTML))msg('El imán atrae el hierro y deja el resto.')},
+ decantar(){if(!S.o)return msg('No hay aceite que decantar.');
+  if(S.w>0)ev.dec=true;J.o+=S.o;S.o=0;check();if(!/cumplida/.test($('ms').innerHTML))msg('El aceite, menos denso, queda arriba y se retira.')},
+ evaporar(){if(!S.w)return msg('No hay agua que evaporar.');
+  const d=dis();if(d.sd>0)ev.ev=true;J.sal+=d.sd;J.az+=d.ad;S.sal-=d.sd;S.az-=d.ad;S.w=0;S.st=true;
+  check();if(!/cumplida/.test($('ms').innerHTML))msg('El agua se evapora y el soluto disuelto queda en forma de cristales.')},
+ vaciar(){document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.a)A[b.dataset.a]();else if(b.dataset.k)A.add(b.dataset.k,+b.dataset.n)});
+reset();J={ar:0,fe:0,sal:0,az:0,o:0};msg('Vaso limpio. ¡Prueba otra mezcla!');draw()}
+};
+function draw(){
+ const P=0.24,bot=260,wt=bot-P*S.w,d=dis(),c=conc();let s='';
+ s+='<path d="M40 12 V262 H180 V12" fill="none" stroke="currentColor" stroke-width="3" opacity=".55"/>';
+ if(S.w>0)s+='<rect x="42" y="'+wt+'" width="136" height="'+(P*S.w)+'" fill="var(--water)" opacity="'+(0.45+0.35*Math.min(1,c/300))+'"/>';
+ if(S.o>0){const oy=S.w>0?wt-P*S.o:bot-P*S.o;s+='<rect x="42" y="'+oy+'" width="136" height="'+(P*S.o)+'" fill="#e9c946" opacity=".8"/>'}
+ let y=bot;const lay=(g,col)=>{if(g<=0)return;const h=Math.min(40,6*Math.sqrt(g));y-=h;s+='<rect x="42" y="'+y+'" width="136" height="'+h+'" fill="'+col+'"/>'};
+ lay(S.fe,'#454b52');lay(S.ar,'#c9a46b');lay(d.su,'#f2f2ee');lay(d.au,'#f7e4b8');
+ if(d.sd+d.ad>0&&S.w>0){const n=Math.min(40,Math.round(c/4)+2);for(let i=0;i<n;i++){const x=50+((i*53)%120),yy=wt+8+((i*37)%Math.max(10,P*S.w-14));s+='<circle cx="'+x+'" cy="'+yy+'" r="2.2" fill="#fff" opacity=".85"/>'}}
+ for(let m=250;m<=1000;m+=250)s+='<text x="184" y="'+(bot-P*m+4)+'" font-size="9" fill="currentColor" opacity=".6">'+m+'</text>';
+ $('sv').innerHTML=s;
+ $('rd').innerHTML='<p><span class="tag">'+kind()+'</span></p><p>Agua: <b>'+S.w+' mL</b>'+(S.o?' · Aceite: <b>'+S.o+' mL</b>':'')+(S.sal?' · Sal: <b>'+S.sal+' g</b>':'')+(S.az?' · Azúcar: <b>'+S.az+' g</b>':'')+(S.ar?' · Arena: <b>'+S.ar+' g</b>':'')+(S.fe?' · Hierro: <b>'+S.fe+' g</b>':'')+'</p>'+(S.w>0&&c>0?'<p>Concentración: <b>'+f1(c)+' g/L</b></p>':'');
+ $('jr').innerHTML=Object.keys(J).map(k=>'<span>'+(J[k]>0?'✅':'▫️')+' '+NG[k]+': <b>'+f1(J[k])+(k=='o'?' mL':' g')+'</b></span>').join('');
+ $('mi').innerHTML=MI.map((m,i)=>'<div class="m'+(done[i]?' d':'')+'">'+(done[i]?'✅':'⬜')+' '+(i+1)+'. '+m[0]+'</div>').join('');
+ $('cnt').textContent='('+done.filter(Boolean).length+'/'+MI.length+')'}
+$('ing').innerHTML=ING.map(g=>'<div class="ing"><b>'+g[1]+'</b>'+g[3].map(n=>'<button class="add" data-k="'+g[0]+'" data-n="'+n+'">+'+n+' '+g[2]+'</button>').join('')+'</div>').join('');
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.a)A[b.dataset.a]();else if(b.dataset.k)A.add(b.dataset.k,+b.dataset.n)});
+reset();J={ar:0,fe:0,sal:0,az:0,o:0};ev={};draw();
+</script>
+</body>
+</html>
